@@ -128,7 +128,7 @@ ARExtractProperties(id object, NSDictionary *analyticsEntry, RACTuple *parameter
                     NSString *pageName;
                     if (dictionaryPageName) {
                         pageName = dictionaryPageName;
-                    } else {
+                    } else if (pageNameKeypath) {
                         pageName = [instance valueForKeyPath:pageNameKeypath];
                         NSAssert(pageName, @"Value for Key on `%@` returned nil.", pageNameKeypath);
                     }
@@ -138,6 +138,19 @@ ARExtractProperties(id object, NSDictionary *analyticsEntry, RACTuple *parameter
                     // `-[ARAnalyticsProvider pageView:]` implementations, so call the right one.
                     NSDictionary *properties = ARExtractProperties(instance, object, parameters);
                     if (properties) {
+                        if (!pageName) {
+                            // if a page name wasn't set statically or via a key path in the controller,
+                            // look for it in the properties dictionary.
+                            pageName = properties[ARAnalyticsPageName];
+                            if (pageName) {
+                                // if found, extract and remove from the properties dictionary
+                                NSMutableDictionary *propertiesM = [properties mutableCopy];
+                                [propertiesM removeObjectForKey:ARAnalyticsPageName];
+                                properties = [NSDictionary dictionaryWithDictionary:propertiesM];
+                            }
+                        }
+                        NSAssert(pageName, @"Page name must be set in ARAnalyticsDetails via ARAnalyticsPageName "
+                                "or  ARAnalyticsPageKeyPath, or in ARAnalyticsProperties with ARAnalyticsPageName");
                         [ARAnalytics pageView:pageName withProperties:properties];
                     } else {
                         [ARAnalytics pageView:pageName];
