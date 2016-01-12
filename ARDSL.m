@@ -94,7 +94,20 @@ ARExtractProperties(id object, NSDictionary *analyticsEntry, RACTuple *parameter
                 BOOL shouldFire = ar_shouldFireForInstance(object, instance, parameters);
 
                 if (shouldFire) {
-                    [ARAnalytics event:event withProperties:ARExtractProperties(instance, object, parameters)];
+                    NSString *eventName = event;
+                    NSDictionary *properties = ARExtractProperties(instance, object, parameters);
+
+                    if (!eventName) {
+                        // if the event was not set, look for it in the properties dictionary
+                        eventName = properties[ARAnalyticsEventName];
+                        if (event) {
+                            NSMutableDictionary *propertiesM = [properties mutableCopy];
+                            [propertiesM removeObjectForKey:ARAnalyticsEventName];
+                            properties = [NSDictionary dictionaryWithDictionary:propertiesM];
+                        }
+                    }
+
+                    [ARAnalytics event:eventName withProperties:properties];
                 }
             }];
         }];
