@@ -1,5 +1,8 @@
 # ARAnalytics
 
+## Version 3.9.1
+* Add configuration setting to the Adobe provider for -trackAction:data: vs. -trackState:data: for screen views. When enabled, allows page views with custom properties to be tracked with -trackState:data: (@arifken)
+
 ## Version 3.9.0
 
 * Adds MobileAppTracker/Tune support (@fabiojgrocha)
