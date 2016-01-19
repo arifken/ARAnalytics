@@ -10,7 +10,9 @@ NSString * const ARAnalyticsDetails = @"details";
 NSString * const ARAnalyticsProperties = @"properties";
 NSString * const ARAnalyticsPageName = @"pageName";
 NSString * const ARAnalyticsPageNameKeyPath = @"keypath";
+NSString * const ARAnalyticsPageNameBlock = @"pageNameBlock";
 NSString * const ARAnalyticsEventName = @"event";
+NSString * const ARAnalyticsEventNameBlock = @"eventBlock";
 NSString * const ARAnalyticsSelectorName = @"selector";
 NSString * const ARAnalyticsEventProperties = @"properties";
 NSString * const ARAnalyticsShouldFire = @"shouldFire";
@@ -76,6 +78,26 @@ ARExtractProperties(id object, NSDictionary *analyticsEntry, RACTuple *parameter
     return nil;
 }
 
+static NSString *
+ARExtractPageName(id object, NSDictionary *analyticsEntry, RACTuple *parameters)
+{
+    ARAnalyticsNameBlock pageNameBlock = analyticsEntry[ARAnalyticsPageNameBlock];
+    if (pageNameBlock) {
+        return pageNameBlock(object, parameters.allObjects, ARExtractProperties(object, analyticsEntry, parameters));
+    }
+    return nil;
+}
+
+static NSString *
+ARExtractEventName(id object, NSDictionary *analyticsEntry, RACTuple *parameters)
+{
+    ARAnalyticsNameBlock eventNameBlock = analyticsEntry[ARAnalyticsEventNameBlock];
+    if (eventNameBlock) {
+        return eventNameBlock(object, parameters.allObjects, ARExtractProperties(object, analyticsEntry, parameters));
+    }
+    return nil;
+}
+
 + (void)addEventAnalyticsHook:(NSDictionary *)eventDictionary {
     Class klass = eventDictionary[ARAnalyticsClass];
 
@@ -95,19 +117,11 @@ ARExtractProperties(id object, NSDictionary *analyticsEntry, RACTuple *parameter
 
                 if (shouldFire) {
                     NSString *eventName = event;
-                    NSDictionary *properties = ARExtractProperties(instance, object, parameters);
-
                     if (!eventName) {
-                        // if the event was not set, look for it in the properties dictionary
-                        eventName = properties[ARAnalyticsEventName];
-                        if (event) {
-                            NSMutableDictionary *propertiesM = [properties mutableCopy];
-                            [propertiesM removeObjectForKey:ARAnalyticsEventName];
-                            properties = [NSDictionary dictionaryWithDictionary:propertiesM];
-                        }
+                        // if the event name was not set statically, see if it's available via the block parameter
+                        eventName = ARExtractEventName(instance, object, parameters);
                     }
-
-                    [ARAnalytics event:eventName withProperties:properties];
+                    [ARAnalytics event:eventName withProperties:ARExtractProperties(instance, object, parameters)];
                 }
             }];
         }];
@@ -144,6 +158,9 @@ ARExtractProperties(id object, NSDictionary *analyticsEntry, RACTuple *parameter
                     } else if (pageNameKeypath) {
                         pageName = [instance valueForKeyPath:pageNameKeypath];
                         NSAssert(pageName, @"Value for Key on `%@` returned nil.", pageNameKeypath);
+                    } else {
+                        // if we still don't have a page name, check to see if it is supplied dynamically
+                        pageName = ARExtractPageName(instance, object, parameters);
                     }
 
                     // Because of backwards compatibility we can't currently expect
