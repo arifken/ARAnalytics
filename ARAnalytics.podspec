@@ -158,7 +158,7 @@ Pod::Spec.new do |s|
 
   # set default subspec no_clash_NAME where NAME is the subspec we want to use.
   # This will give us all possible subspecs that do not clash with NAME.
-  s.default_subspec = 'no_clash_HockeyApp'
+  s.default_subspecs = 'Adobe', 'DSL'
 
   # I always forget to keep the description up to date as provider support is added and removed, thus automation.
 
